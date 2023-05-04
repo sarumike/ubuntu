@@ -1,0 +1,33 @@
+{
+        "networkType": "RegTest",
+        "savePathRoot": "/home/mikej/",
+        "transactionsFile": "/perf_testdata/data/10M_400MB_blocks/transactions_1_2_TN_.10000000.24",
+        "waitForSpecialPingReply": false,
+        "announceTransactions": false,
+
+        "adaptersConfig": [
+                {
+
+                        "announceTransactions": false,
+                        "peerDiscovery": "None",
+                        "connectToPeers":[ "135.181.217.211:18444" ]
+
+
+                }
+        ],
+
+
+
+
+        "sessionName": "generate100k",
+        "waitAfterStartSending": 1200,
+        "logToConsole" : true,
+
+
+        "transactionsPerSecond": 20000,
+        "burstVolume": 10,
+        "accelerationPerHour": 1.0
+
+
+
+}
