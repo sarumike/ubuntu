@@ -1,0 +1,184 @@
+cryptoservice commands
+
+
+list services
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext crypto_service:9008 list proto.CryptoService
+
+example createAlias:
+
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext -d
+ '{"alias":"mynewalias"}' crypto_service:9008 proto.CryptoService/CreateAlias
+ 
+ 
+ 
+ methods to look at:
+ 
+1 Sign *
+2 SignHash
+3 GetPublicKey *
+4 BatchSignHash
+ 
+keystore.proto -> CreateAlias
+
+
+1 Sign
+"alias" must have been created by createAlias method
+"data" must be base64 encoded
+
+
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext -d '{"key_context": {
+                        "alias": "mynewalias",
+                        "path": "0"
+                },"data": "dGVzdA=="}' crypto_service:9008 proto.CryptoService/Sign
+ 
+ 
+ returns:
+ 
+ {
+  "signature": "MEUCIQCmko/JspCW1BNWI3V0bvBzWsGkW0sqrAGVA/YG8X8raAIgJMH68Dqoaus4Vodyk1OrOaQDpu4npARW9Jkg/qpeUic=",
+  "publicKey": "Ay73+uM+5ZgF7+3ufnhhj+3wcXOU68Z/s0c/KwpjTXh9"
+}
+
+2 SignHash
+
+
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext -d '{"key_context": {
+                        "alias": "mynewalias",
+                        "path": "100"
+                },"hash": "cXdlcnR5dWlvcGFzZGZnaGprbHp4Y3Zibm1xd2VydHk="}' crypto_service:9008 proto.CryptoService/SignHash
+				
+returns:
+
+{
+  "signature": "MEQCIDjd88axSwvly8Onkd1PIFMf1Pcwpj8wjIYgIi6l9c9YAiAi+6x2AcO/kno3JdD3tNTo5gdPAkRv5pXp7AZb1m8cKA==",
+  "publicKey": "AnYZiMCRgnBT2eYr5UYf680WbAMaBgaP4H+6M9cUfKLZ"
+}
+
+
+NB this will overwrite PublicKey in path=100
+
+
+3 getPublicKey
+"alias" must have been created by createAlias method
+
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext -d '{"key_context": {"alias": "mynewalias", "path": "0"} }' crypto_service:9008 proto.CryptoService/GetPublicKey
+
+
+returns:
+
+{
+  "publicKey": "Ay73+uM+5ZgF7+3ufnhhj+3wcXOU68Z/s0c/KwpjTXh9",
+  "address": "miJQuuFCmp7Q2QbQxF92bfe3ZHgfqFTTDs"
+}
+
+NB the public key in signing is the same
+
+
+
+4 BatchSignHash
+
+trivial case of 1 hash
+
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext -d '{"request_batch": {"key_context": {
+                        "alias": "mynewalias",
+                        "path": "5"
+                },"hash": "cXdlcnR5dWlvcGFzZGZnaGprbHp4Y3Zibm1xd2VydHk="}}' crypto_service:9008 proto.CryptoService/BatchSignHash
+
+returns:
+
+
+  "responseBatch": [
+    {
+      "signature": "MEMCIG4MNSvxpf74g6C7jmN0UfiWZy/jMiZgP5LhUHdN4qk8Ah82K3AOL/nOXYkvVYEVKo7Ekt449r00gJdvWN4mDWm9",
+      "publicKey": "A2tWgDctutBQ4K8mNyfCJoSNSiqeblBw8/TzxRdbK4Ku"
+    }
+  ]
+}
+
+
+case of mutiple hashes
+
+docker run --network=platform-services-network fullstorydev/grpcurl -plaintext -d '{"request_batch": [{"key_context": {
+                        "alias": "mynewalias",
+                        "path": "15"
+                },"hash": "cXdlcnR5dWlvcGFzZGZnaGprbHp4Y3Zibm1xd2VydHk="}, {"key_context": {
+                        "alias": "mynewalias",
+                        "path": "16"
+                },"hash": "cXdlcnR5dWlvcGFzZGZnaGprbHp4Y3Zibm1xd2VydHo="} ]  }' crypto_service:9008 proto.CryptoService/BatchSignHash
+
+returns:
+
+{
+  "responseBatch": [
+    {
+      "signature": "MEUCIQDvVv06TRc5g7csmIL0WjU1eJQcdGt8NqQs6FS9McsLiAIgVMg+0nZe9dQwF4EapHDuTdX9KFWnN3C7Xlphjg7/6ag=",
+      "publicKey": "A6I0o7cpASeIIuNO5cTDE+vxa7qAHmneH2FbIjJf+rU2"
+    },
+    {
+      "signature": "MEQCIDhP1AYn9fCAZal+brLUfDs2rvqceFeyQyyoM43GDrrFAiAQmjER1SlhDNQiruxExM8vN+hvCmEOLRyq24eq+oAI+A==",
+      "publicKey": "AtbMPc0miM3+TmNBUtcRVOUbQqDknGTSvyygaALURzyH"
+    }
+  ]
+}
+
+
+				
+NB using getPublicKey for each path returns correct key
+				
+				
+				
+				
+				#########################
+				
+				
+				
+				
+using perf tool :
+
+sign a hash:
+
+
+go run ./cmd/crypto/... signhash --parallele 1 --nb-sign 100 --url "localhost:9008" --sign-msg "single signings"
+
+runs 1 thread of 100 signings. increase number of threads --parallele x to run x numbers concurrently
+
+
+sign a batch of hashes:
+
+go run ./cmd/crypto/... signhashbatch --parallele 1 --nb-sign 100 --batch-size 100 --url "localhost:9008" --sign-msg "sign me if you can"
+
+runs 1 thread with 10000 signings eaxh containg batch of 10000, ie 100 * 100 =  10000 signings
+
+
+getPublicKey
+go run ./cmd/crypto/... getpubkey --parallele 1  --nb-get 100 --url "localhost:9008"
+
+runs 1 thread with 100 getpublickeys
+
+NB max threads for getpubkey is 1000
+
+###############################################
+
+run docker up with cpu limiting
+
+docker-compose -f config/system/crypto_service/docker-compose.crypto_service.yml up -d
+
+scale crypto_service to 2 instances:
+
+NB comment out container name and change ports
+
+ie 
+- "9008:9008" -> - "9008"
+
+
+docker-compose -f config/system/crypto_service/docker-compose.crypto_service.yml  up -d --scale crypto_service=2
+
+
+single instance:
+0.0.0.0:9008->9008/tcp, :::9008->9008/tcp   crypto_service
+
+2 instances:
+0.0.0.0:32771->9008/tcp, :::32771->9008/tcp   crypto_service_crypto_service_1
+0.0.0.0:32770->9008/tcp, :::32770->9008/tcp   crypto_service_crypto_service_2
+
+
