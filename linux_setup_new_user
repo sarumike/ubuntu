@@ -1,0 +1,34 @@
+Setup users and access right
+When you first have the machine, you'll be logged in as root. It is better to add a new user and allow access for this user to use the machine. 
+
+First, create your user and password : 
+
+add user and password
+root@123.456.7.89$ adduser your_user_name
+# Set password prompts:
+Enter new UNIX password:
+Retype new UNIX password:
+passwd: password updated successfully
+# User information prompts:
+Changing the user information for username
+Enter the new value, or press ENTER for the default
+    Full Name []:
+    Room Number []:
+    Work Phone []:
+    Home Phone []:
+    Other []:
+Is the information correct? [Y/n]
+You can add the admin right to this user, and start to switch to this user to work : 
+
+switch user
+root@123.456.7.89$ usermod -aG sudo your_user_name
+root@123.456.7.89$ su - your_user_name
+From now you use the machine as your username, you can start to create the ssh access right for this user by creating a file in your ~/.ssh/authorized_keys, enter your public ssh key there. As ssh is very severe about file permission, it's better to run a few set of commands :
+
+set files permission
+your_user_name@123.456.7.89$ chmod 700 ~/.ssh
+your_user_name@123.456.7.89$ chmod 600 ~/.ssh/authorized_keys
+your_user_name@123.456.7.89$ chown $USER:$USER ~/.ssh -R
+Under admin right (sudo), open the file /etc/ssh/sshd_config, make sure the line containing AuthorizedKeysFile is uncommented, and contains %h/.ssh/authorized_keys. Then run sudo service ssh restart to restart ssh server.
+
+After that, assuming you have the private ssh key, you can try to ssh-connect from your machine to this server.

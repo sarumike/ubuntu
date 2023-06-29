@@ -1,0 +1,42 @@
+This is all you need to add swap space under Ubuntu.
+
+Note, you need the disk space to do this…
+
+(note the below will add 64GB – change this if you want less/more)
+
+sudo fallocate -l 64G /swapfile64gb \
+&& sudo chmod 600 /swapfile64gb \
+&& sudo mkswap /swapfile64gb \
+&& sudo swapon /swapfile64gb \
+&& echo '/swapfile64gb none swap sw 0 0' | sudo tee -a /etc/fstab
+
+
+
+####################################################
+
+
+
+Assuming swap space is added , there will be a swapfile and an entry in /etc/fstab as below.
+
+# ls -l /swapfile32gb
+-rw------- 1 root root 17179869184 Jul 13 15:31 /swapfile32gb
+ 
+# cat /etc/fstab
+LABEL=cloudimg-rootfs   /        ext4   defaults        0 0
+LABEL=UEFI      /boot/efi       vfat    defaults        0 0
+/swapfile32gb none swap sw 0 0
+To remove swap space
+There are instances where you have added swap space (smaller or higher) and then you decided to increase or decrease the swap space. In those instances, we have to first remove the swap space as below and then add swap space of required size.
+
+Disable the swap file - for eg. the above file
+
+swapoff -v /swapfile32gb
+Remove the corresponding entry from the /etc/fstab file (the last line in the above example)
+
+Regenerate mount units so that your system registers the new configuration
+
+systemctl daemon-reload
+Remove the actual swap file
+
+rm /swapfile32gb
+
