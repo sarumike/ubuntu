@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+
+  keystore:
+    container_name: keystore
+    image: 709855634846.dkr.ecr.eu-west-2.amazonaws.com/keystore:8184e8f
+    environment:
+      - ENV_ENVIRONMENT=local
+      - BITCOIN_NODE_NETWORK=private
+      - OPENTRACING_ENABLED=false
+      - enableTracer=false
+      - PROMETHEUS_ENABLED=false
+    volumes:
+       - keystore-data:/root/.keystore
+    ports:
+      - "9004:9004"
+    restart: unless-stopped
+    networks:
+      - kensei_perf_network
+
+  crypto_service:
+    container_name: crypto_service #comment out if using multiple containers
+    image: 709855634846.dkr.ecr.eu-west-2.amazonaws.com/crypto_service:8f636a6
+#    deploy: #multiple containers
+#      replicas: 2 #mulitple containers
+    mem_limit: 2048m
+    cpus: 1.0
+    environment:
+      - ENV_ENVIRONMENT=local
+      - BITCOIN_NODE_NETWORK=private
+      - OPENTRACING_ENABLED=false
+      - enableTracer=false
+      - PROMETHEUS_ENABLED=false
+    ports:
+      - "9008:9008" # comment out of using multiple containers
+#      - "9008" #multiple containers
+    restart: unless-stopped
+    networks:
+      - kensei_perf_network
+    depends_on: [keystore]
+
+networks:
+  kensei_perf_network:
+    name: kensei_perf_network
+
+volumes:
+  keystore-data:
+    external: false
